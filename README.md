@@ -1,13 +1,40 @@
 
-# 🧠 Company_Info_Extraction
----
-# ✒️PART 1
+# 🧠 NIFTY_50_Company_Information_Extraction
 ---
 ---
 
 ## 📋 Overview
 
-This **n8n workflow** is designed to automate the extraction of detailed company information from input documents generated using STORM WebDriver Selenium, combined with an integrated LLM (Large Language Model), to produce a fully structured company profile.
+# Problem
+
+Most LLM models do not have direct internet access. Because of this, they mainly function as text generation models and cannot retrieve real-time or latest information on their own.
+
+As a result:
+- The model may provide outdated answers
+- It cannot access live web data
+- It cannot perform real-time research
+- Accuracy decreases for current events or newly published information
+
+# Solution
+
+To solve this problem, external knowledge retrieval systems such as RAG (Retrieval-Augmented Generation) are integrated with LLM models.
+
+Tools like STORM, developed by researchers at Stanford University, help enable this workflow. STORM is an AI-powered research and knowledge synthesis system that connects AI workflows with external web knowledge sources.
+
+Using this approach:
+
+- The AI model can retrieve internet-based information  
+- Latest and real-time data can be accessed  
+- Responses become more accurate and up-to-date  
+- External documents, websites, and search engines can be integrated into the AI pipeline  
+
+This creates a hybrid AI system where:
+
+The LLM model handles reasoning and response generation  
+External retrieval systems provide real-time knowledge and web information  
+
+This n8n workflow is designed to automate the extraction of detailed company information from input documents generated using STORM WebDriver Selenium, combined with an integrated LLM (Large Language Model), to produce a fully structured company profile.
+
 ---
 
 ## 📋 List of Extracted Parameters
@@ -68,10 +95,91 @@ The workflow extracts and organizes the following major sections:
   - Summary of the Full Company Profile
 
 ---
-## N8N WORKFLOW
+---
+# ✒️PART 1
+---
+---
+
+## N8N WORKFLOW - (WITHOUT RELAYING ON THE STORM API)
+![image](https://github.com/user-attachments/assets/f6d11cc8-759d-4d40-9a33-117ee89fd13f)
+
+## 📋 Overview
+
+This workflow is designed to **automatically generate detailed company profiles** using only the **input parameters provided**—without relying on the STORM API or any third-party data enrichment tools.
+
+## 🛠 Workflow Nodes & Descriptions
+---
+
+### 1️⃣ Schedule Trigger Node
+**⚙ What It Does:**  
+Starts the workflow automatically (time-based schedule).
+
+### 2️⃣ Google Sheets Node
+**Name of the Node:** `Google Sheets`  
+**⚙ What It Does:**  
+Reads the sheet where company data is stored.
+
+### 3️⃣ Loop Over Node
+**Name of the Node:** `Loop Over Items - 1`  
+**⚙ What It Does:**  
+Iterates through each row of data (likely each company).
+
+### 4️⃣ Edit Node
+**Name of the Node:** `SELECT Company Name, Industry, Symbol, ISIN Code`  
+**⚙ What It Does:**  
+Move Forward with Only Selective Parameters:
+- Company Name
+- Industry
+- Symbol
+- ISIN Code
+
+### 5️⃣ AI Agent Node (Deepseek Model - deepseek/deepseek-r1-distill-qwen-32b):
+**Name of the Node:** `Extract Company Name`  
+**⚙ What It Does:**  
+Takes the selected parameters from the previous node as input and uses a **crafted prompt with the integrated DeepSeek R1 Qwine 70B Free Model** to extract all required company's output parameters,
+
+### 6️⃣ Edit Node
+**Name of the Node:** `Company_Info_Output`  
+**⚙ What It Does:**  
+Collects the AI Agent output.
+
+### 7️⃣ Code Node
+**Name of the Node:** `Return Cleaned Output`  
+**⚙ What It Does:**  
+It **cleans** the AI Agent output.
+
+### 8️⃣ Code Node
+**Name of the Node:** `Company_Info_Output TO JSON Format`  
+**⚙ What It Does:**  
+Converts the result into **strict JSON** (ready for database insertion).
+
+### 9️⃣ Postgres Node (Insert)
+**Name of the Node:** `Insert_Result_To_Companies_Details_Table`  
+**⚙ What It Does:**  
+Inserts data into the table.
+
+## Output
+
+Some parameters in the output are generated accurately, but most of the values are returned as null.
+
+---
+---
+# ✒️PART 2
+---
+---
+
+## N8N WORKFLOW  (USING STORM WITH SELENIUM)
 ![image](https://github.com/user-attachments/assets/2d8ccfb7-39e1-4a9d-a1a8-ab88372c4c6d)
 
-## 📥 Part 1 → Input Ingestion & Preprocessing
+## 📋 Overview
+
+This workflow is designed using STORM with Selenium WebDriver. Selenium WebDriver clicks on the platform’s feature to download article PDFs automatically.
+
+The downloaded PDF is then passed to a custom Python script, which extracts the text content from the document. The extracted text is further provided to the AI Agent as contextual input for processing and structured information generation.
+
+---
+
+## 📥 Part A → Input Ingestion & Preprocessing
 
 **Purpose:**
 
@@ -315,66 +423,6 @@ uvicorn routes:app --host 0.0.0.0 --port 8000 --reload
 ###
 ---
 ---
-# ✒️PART 2
----
----
 
-## N8N WORKFLOW - (WITHOUT RELAYING ON THE STORM API)
-![image](https://github.com/user-attachments/assets/f6d11cc8-759d-4d40-9a33-117ee89fd13f)
-
-## 📋 Overview
-
-This workflow is designed to **automatically generate detailed company profiles** using only the **input parameters provided**—without relying on the STORM API or any third-party data enrichment tools.
-
-## 🛠 Workflow Nodes & Descriptions
----
-
-### 1️⃣ Schedule Trigger Node
-**⚙ What It Does:**  
-Starts the workflow automatically (time-based schedule).
-
-### 2️⃣ Google Sheets Node
-**Name of the Node:** `Google Sheets`  
-**⚙ What It Does:**  
-Reads the sheet where company data is stored.
-
-### 3️⃣ Loop Over Node
-**Name of the Node:** `Loop Over Items - 1`  
-**⚙ What It Does:**  
-Iterates through each row of data (likely each company).
-
-### 4️⃣ Edit Node
-**Name of the Node:** `SELECT Company Name, Industry, Symbol, ISIN Code`  
-**⚙ What It Does:**  
-Extracts:
-- Company Name
-- Industry
-- Symbol
-- ISIN Code
-
-### 5️⃣ AI Agent Node (Deepseek Model - deepseek/deepseek-r1-distill-qwen-32b):
-**Name of the Node:** `Extract Company Name`  
-**⚙ What It Does:**  
-Takes all parameters as input and uses a **crafted prompt with the integrated DeepSeek R1 Qwine 70B Free Model** to extract all required company parameters, including:
-Business, Financials, Operations, Strategy, and More
-
-### 6️⃣ Edit Node
-**Name of the Node:** `Company_Info_Output`  
-**⚙ What It Does:**  
-Collects the AI output and **passes the result from the AI Agent.**
-
-### 7️⃣ Code Node
-**Name of the Node:** `Return Cleaned Output`  
-**⚙ What It Does:**  
-Ensures the AI output is **cleaned and well-structured JSON.**
-
-### 8️⃣ Code Node
-**Name of the Node:** `Company_Info_Output TO JSON Format`  
-**⚙ What It Does:**  
-Converts the result into **strict JSON** (ready for database insertion).
-
-### 9️⃣ Postgres Node (Insert)
-**Name of the Node:** `Insert_Result_To_Companies_Details_Table`  
-**⚙ What It Does:**  
 Inserts the final **structured JSON** into your Postgres database.
 
